@@ -3,8 +3,8 @@ import tensorflow as tf
 
 from enformer.layers import GELU, SoftPlus
 
-
 @pytest.mark.layers
+@pytest.mark.actions
 def test_softplus():
 
     layer = SoftPlus("softplus")
@@ -15,6 +15,7 @@ def test_softplus():
 
 
 @pytest.mark.layers
+@pytest.mark.actions
 def test_gelu():
 
     layer = GELU("gelu")
