@@ -1,4 +1,4 @@
-from typing import Callable, List, Optional
+from typing import List, Optional
 
 import numpy as np
 import tensorflow as tf
@@ -58,9 +58,9 @@ def positional_features_all(
     num_basis_per_class = feature_size // num_components
     embeddings = tf.concat(
         [
-            func(
+            func(  # type:ignore
                 tf.abs(positions), num_basis_per_class, seq_length, bin_size
-            )  # type:ignore
+            )
             for func in feature_functions
         ],
         axis=-1,

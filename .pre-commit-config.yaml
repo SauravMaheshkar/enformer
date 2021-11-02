@@ -30,6 +30,6 @@ repos:
         name: pytest-check
         entry: pytest
         language: python
-        additional_dependencies: [pre-commit, pytest, tensorflow]
+        additional_dependencies: [pre-commit, pytest, tensorflow, dm-sonnet]
         pass_filenames: false
         always_run: true

@@ -2,6 +2,7 @@ import numpy as np
 
 __all__ = ["exponential_linspace_int"]
 
+
 def exponential_linspace_int(start, end, num, divisible_by=1):
     def _round(x):
         return int(np.round(x / divisible_by) * divisible_by)
