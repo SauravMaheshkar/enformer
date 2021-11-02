@@ -2,6 +2,7 @@ from typing import Callable, Dict, List, Optional
 
 import sonnet as snt
 import tensorflow as tf
+
 from enformer.utils.positional import positional_features_all, relative_shift
 
 __all__ = ["MultiheadAttention"]
@@ -24,7 +25,7 @@ class MultiheadAttention(tf.keras.layers.Layer):
         zero_initialize: bool = True,
         initializer: Optional[tf.keras.initializers.Initializer] = None,
         name: str = "multihead_attention",
-        **kwargs
+        **kwargs,
     ) -> None:
 
         super(MultiheadAttention, self).__init__(name=name, **kwargs)
@@ -98,13 +99,13 @@ class MultiheadAttention(tf.keras.layers.Layer):
                 kernel_initializer=self._initializer,
             )
             self._r_w_bias = tf.Variable(
-                self._initializer(
+                self._initializer(  # type: ignore
                     [1, self._num_heads, 1, self._key_size], dtype=tf.float32
                 ),
                 name=self.name + "_r_w_bias",
             )
             self._r_r_bias = tf.Variable(
-                self._initializer(
+                self._initializer(  # type: ignore
                     [1, self._num_heads, 1, self._key_size], dtype=tf.float32
                 ),
                 name=self.name + "_r_r_bias",

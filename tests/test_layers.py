@@ -37,7 +37,7 @@ def test_residual():
     layer = Residual(Identity(), name="residual")
     assert layer.name == "residual"
 
-    outputs = layer(inputs = tf.ones((2, 2)))
+    outputs = layer(inputs=tf.ones((2, 2)))
     assert outputs.shape == tf.TensorShape((2, 2))
 
 

@@ -3,11 +3,11 @@ from typing import Dict
 import tensorflow as tf
 
 from .layers.activation_layers import GELU, SoftPlus
-from .layers.container_layers import Residual
 from .layers.attention_layers import MultiheadAttention
-from .pooling import pooling_module
+from .layers.container_layers import Residual
 from .layers.misc import TargetLengthCrop1D
 from .ops import exponential_linspace_int
+from .pooling import pooling_module
 
 SEQUENCE_LENGTH = 196_608
 BIN_SIZE = 128
@@ -134,7 +134,7 @@ class Enformer(tf.keras.Model):
                                         gamma_initializer=tf.keras.initializers.Ones(),
                                     ),
                                     MultiheadAttention(
-                                        **whole_attention_kwargs, name=f"attention_{i}"
+                                        **whole_attention_kwargs, name=f"attention_{i}"  # type: ignore
                                     ),
                                     tf.keras.layers.Dropout(
                                         rate=dropout_rate, seed=seed
@@ -143,7 +143,7 @@ class Enformer(tf.keras.Model):
                                 name="mha",
                             )
                         ),
-                        Residual(transformer_mlp(), name = "residual_transfomer_mlp"),
+                        Residual(transformer_mlp(), name="residual_transfomer_mlp"),
                     ],
                     name=f"transformer_block_{i}",
                 )
