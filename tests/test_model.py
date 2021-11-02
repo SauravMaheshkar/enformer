@@ -1,14 +1,15 @@
 import random
+import pytest
 from typing import Any
 
 import numpy as np
 
-from enformer.nn import Enformer
+from enformer.model import Enformer
 
 TARGET_LENGTH = 896
 SEQUENCE_LENGTH = 196_608
 
-
+@pytest.mark.model
 def test_enformer():
     model = Enformer(channels=1536, num_transformer_layers=11, seed=42)
     inputs = _get_random_input()
