@@ -4,16 +4,17 @@ from typing import Any
 
 import numpy as np
 
-from enformer.model import Enformer
+from enformer.nn import Enformer
 
 TARGET_LENGTH = 896
 SEQUENCE_LENGTH = 196_608
+
 
 @pytest.mark.model
 def test_enformer():
     model = Enformer(channels=1536, num_transformer_layers=11, seed=42)
     inputs = _get_random_input()
-    outputs = model(inputs, training=True)
+    outputs = model(inputs)
     assert outputs["human"].shape == (1, TARGET_LENGTH, 5313)
     assert outputs["mouse"].shape == (1, TARGET_LENGTH, 1643)
 

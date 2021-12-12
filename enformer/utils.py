@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-__all__ = ["relative_shift", "Residual"]
+__all__ = ["relative_shift"]
 
 
 def relative_shift(x):
@@ -22,18 +22,6 @@ def exponential_linspace_int(start, end, num, divisible_by=1):
 
     base = np.exp(np.log(end / start) / (num - 1))
     return [_round(start * base ** i) for i in range(num)]
-
-
-class Residual(tf.Module):
-    def __init__(self, module: tf.Module, name="residual", **kwargs):
-        super(Residual, self).__init__(name=name, **kwargs)
-        self._module = module
-
-    @tf.Module.with_name_scope
-    def __call__(self, inputs: tf.Tensor, training: bool, *args, **kwargs) -> tf.Tensor:
-        return inputs + self._module(inputs, training, *args, **kwargs)
-
-
 class TargetLengthCrop1D(tf.Module):
     def __init__(self, target_length: int, name="target_length_crop", **kwargs):
         super(TargetLengthCrop1D, self).__init__(name=name, **kwargs)

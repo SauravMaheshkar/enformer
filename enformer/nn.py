@@ -2,10 +2,10 @@ from typing import Dict
 
 import tensorflow as tf
 
-from .layers import GELU, SoftPlus
-from .modules import MultiheadAttention
+from .layers.activation_layers import GELU, SoftPlus
 from .pooling import pooling_module
-from .utils import Residual, TargetLengthCrop1D, exponential_linspace_int
+from .utils import TargetLengthCrop1D, exponential_linspace_int
+from .layers.container_layers import Residual
 
 SEQUENCE_LENGTH = 196_608
 BIN_SIZE = 128
@@ -22,7 +22,7 @@ class Enformer(tf.keras.Model):
         pooling_type: str = "max",
         name: str = "enformer",
         **kwargs,
-    ):
+    ) -> None:
 
         super(Enformer, self).__init__(name=name, **kwargs)
 
@@ -31,24 +31,6 @@ class Enformer(tf.keras.Model):
         assert channels % num_heads == 0, (
             "channels needs to be divisible " f"by {num_heads}"
         )
-
-        whole_attention_kwargs = {
-            "attention_dropout_rate": 0.05,
-            "initializer": None,
-            "key_size": 64,
-            "num_heads": num_heads,
-            "num_relative_position_features": channels // num_heads,
-            "positional_dropout_rate": 0.01,
-            "relative_position_functions": [
-                "positional_features_exponential",
-                "positional_features_central_mask",
-                "positional_features_gamma",
-            ],
-            "relative_positions": True,
-            "scaling": True,
-            "value_size": channels // num_heads,
-            "zero_initialize": True,
-        }
 
         trunk_name_scope = tf.name_scope("trunk")
         trunk_name_scope.__enter__()
@@ -79,7 +61,7 @@ class Enformer(tf.keras.Model):
                 Residual(conv_block(channels // 2, 1, name="pointwise_conv_block")),
                 pooling_module(pooling_type, pool_size=2),
             ],
-            name="stem",
+            name = "stem"
         )
 
         filter_list = exponential_linspace_int(
@@ -102,22 +84,6 @@ class Enformer(tf.keras.Model):
             name="conv_tower",
         )
 
-        # Transformer.
-        def transformer_mlp():
-            return tf.keras.Sequential(
-                [
-                    tf.keras.layers.LayerNormalization(
-                        axis=-1, scale=True, center=True
-                    ),
-                    tf.keras.layers.Dense(units=channels * 2),
-                    tf.keras.layers.Dropout(rate=dropout_rate, seed=seed),
-                    tf.keras.layers.ReLU(),
-                    tf.keras.layers.Dense(units=channels),
-                    tf.keras.layers.Dropout(rate=dropout_rate, seed=seed),
-                ],
-                name="mlp",
-            )
-
         transformer = tf.keras.Sequential(
             [
                 tf.keras.Sequential(
@@ -131,19 +97,39 @@ class Enformer(tf.keras.Model):
                                         center=True,
                                         gamma_initializer=tf.keras.initializers.Ones(),
                                     ),
-                                    MultiheadAttention(
-                                        **whole_attention_kwargs, name=f"attention_{i}"
+                                    tf.keras.layers.MultiHeadAttention(
+                                        num_heads=num_heads,
+                                        key_dim=64,
+                                        value_dim=channels // num_heads,
+                                        name=f"attention_{i}",
                                     ),
                                     tf.keras.layers.Dropout(
                                         rate=dropout_rate, seed=seed
                                     ),
                                 ],
-                                name="mha",
+                                name = f"Attention_Block_{i}"
                             )
                         ),
-                        Residual(transformer_mlp()),
-                    ],
-                    name=f"transformer_block_{i}",
+                        Residual(
+                            tf.keras.Sequential(
+                                [
+                                    tf.keras.layers.LayerNormalization(
+                                        axis=-1, scale=True, center=True
+                                    ),
+                                    tf.keras.layers.Dense(units=channels * 2),
+                                    tf.keras.layers.Dropout(
+                                        rate=dropout_rate, seed=seed
+                                    ),
+                                    tf.keras.layers.ReLU(),
+                                    tf.keras.layers.Dense(units=channels),
+                                    tf.keras.layers.Dropout(
+                                        rate=dropout_rate, seed=seed
+                                    ),
+                                ],
+                                name = f"Attention_Head_{i}"
+                            )
+                        ),
+                    ]
                 )
                 for i in range(num_transformer_layers)
             ],
@@ -162,7 +148,9 @@ class Enformer(tf.keras.Model):
         )
 
         self._trunk = tf.keras.Sequential(
-            [stem, conv_tower, transformer, crop_final, final_pointwise], name="trunk"
+            [stem, conv_tower, 
+            transformer, 
+            crop_final, final_pointwise], name="trunk"
         )
         trunk_name_scope.__exit__(None, None, None)
 
@@ -183,16 +171,9 @@ class Enformer(tf.keras.Model):
     def heads(self):
         return self._heads
 
-    def __call__(self, inputs: tf.Tensor, training: bool) -> Dict[str, tf.Tensor]:
-        trunk_embedding = self.trunk(inputs, training=training)
+    def __call__(self, inputs: tf.Tensor) -> Dict[str, tf.Tensor]:
+        trunk_embedding = self.trunk(inputs)
         return {
-            head: head_module(trunk_embedding, is_training=training)
+            head: head_module(trunk_embedding)
             for head, head_module in self.heads.items()
         }
-
-    @tf.function(
-        input_signature=[tf.TensorSpec([None, SEQUENCE_LENGTH, 4], tf.float32)]
-    )
-    def predict_on_batch(self, x):
-        """Method for SavedModel."""
-        return self(x, is_training=False)
